@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: fund-name-vote
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: name-vote-data
+      mountPath: /var/data
+      sizeGB: 1

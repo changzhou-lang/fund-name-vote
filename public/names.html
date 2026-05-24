@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>基金名字投票 / Fund Name Vote</title>
+    <link rel="stylesheet" href="/names.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Fund Name Vote</p>
+          <h1>基金名字投票 <span>Fund Name Vote</span></h1>
+          <p class="intro">请选择你喜欢的名字。Please choose your preferred Chinese-English name.</p>
+        </div>
+        <div class="hero-actions">
+          <button id="refreshButton" class="ghost-button" type="button">刷新 / Refresh</button>
+          <a class="primary-link" href="#add-name">添加名字 / Add Name</a>
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="投票摘要">
+        <article>
+          <span>候选名字 / Candidates</span>
+          <strong id="nameCount">--</strong>
+        </article>
+        <article>
+          <span>总票数 / Total Votes</span>
+          <strong id="voteCount">--</strong>
+        </article>
+        <article>
+          <span>当前领先 / Current Leader</span>
+          <strong id="leaderName">--</strong>
+        </article>
+      </section>
+
+      <section class="toolbar" aria-label="筛选和排序">
+        <div class="search-box">
+          <label for="searchInput">搜索 / Search</label>
+          <input id="searchInput" type="search" placeholder="中文、英文或备注 / Chinese, English or note" />
+        </div>
+        <div class="select-box">
+          <label for="styleFilter">风格 / Style</label>
+          <select id="styleFilter">
+            <option value="all">全部风格 / All Styles</option>
+          </select>
+        </div>
+        <div class="select-box">
+          <label for="sortSelect">排序 / Sort</label>
+          <select id="sortSelect">
+            <option value="votes">票数优先 / Most Votes</option>
+            <option value="chinese">中文名 A-Z / Chinese A-Z</option>
+            <option value="english">英文名 A-Z / English A-Z</option>
+            <option value="newest">最新添加 / Newest</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="layout">
+        <div>
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Live Results</p>
+              <h2>候选名单 / Candidates</h2>
+            </div>
+            <span id="statusText" class="status">载入中 / Loading</span>
+          </div>
+          <div id="nameList" class="name-list"></div>
+        </div>
+
+        <aside class="side-panel">
+          <section class="ranking">
+            <p class="eyebrow">Top 3</p>
+            <h2>目前排名 / Ranking</h2>
+            <ol id="rankingList"></ol>
+          </section>
+
+          <section id="add-name" class="add-panel">
+            <p class="eyebrow">New Candidate</p>
+            <h2>添加新名字 / Add Candidate</h2>
+            <form id="nameForm">
+              <label>
+                中文名 / Chinese Name
+                <input name="chinese" required maxlength="12" placeholder="例如：弘道 / e.g. 弘道" />
+              </label>
+              <label>
+                英文名 / English Name
+                <input name="english" required maxlength="42" placeholder="例如 / e.g. NoblePath Capital" />
+              </label>
+              <label>
+                风格 / Style
+                <input name="style" maxlength="18" placeholder="例如：成语 / 道远 / e.g. Idiom / Long Path" />
+              </label>
+              <label>
+                备注 / Note
+                <textarea name="note" maxlength="120" rows="4" placeholder="出处、含义或意象 / Source, meaning or imagery"></textarea>
+              </label>
+              <button class="submit-button" type="submit">添加候选 / Add Candidate</button>
+              <p id="formMessage" class="form-message"></p>
+            </form>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <script src="/names.js" type="module"></script>
+  </body>
+</html>
