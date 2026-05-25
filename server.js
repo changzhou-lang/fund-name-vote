@@ -29,7 +29,10 @@ const conflictDefaults = {
   "\u884c\u8fdc": { status: "clear", label: "No obvious match found", detail: "Public search did not show an obvious AMAC/private fund match." },
   "\u81f4\u8fdc": { status: "used", label: "Already used / likely conflict", detail: "Search found multiple private fund managers/products using \u81f4\u8fdc." },
   "\u535a\u884d": { status: "used", label: "Already used / likely conflict", detail: "Search found \u5317\u4eac\u535a\u884d\u79c1\u52df\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8." },
-  "\u592a\u521d": { status: "used", label: "Already used / likely conflict", detail: "Search found \u5317\u4eac\u592a\u521d\u6295\u8d44\u7ba1\u7406\u6709\u9650\u516c\u53f8 and \u534e\u94a7\u592a\u521d\u79c1\u52df\u8bc1\u5238\u6295\u8d44\u57fa\u91d1." }
+  "\u592a\u521d": { status: "used", label: "Already used / likely conflict", detail: "Search found \u5317\u4eac\u592a\u521d\u6295\u8d44\u7ba1\u7406\u6709\u9650\u516c\u53f8 and \u534e\u94a7\u592a\u521d\u79c1\u52df\u8bc1\u5238\u6295\u8d44\u57fa\u91d1." },
+  "\u592a\u8861": { status: "clear", label: "No obvious match found", detail: "Public search did not show an obvious China private fund match for \u592a\u8861\u8d44\u672c." },
+  "\u5929\u67a2": { status: "clear", label: "No obvious match found", detail: "Public search did not show an obvious China private fund match for \u5929\u67a2\u8d44\u672c." },
+  "\u5b9a\u6d77": { status: "clear", label: "No obvious match found", detail: "Public search did not show an obvious China private fund match for \u5b9a\u6d77\u8d44\u672c." }
 };
 
 const unknownConflict = {
@@ -57,6 +60,34 @@ const seedNames = [
   ...item
 }));
 
+const requiredNames = [
+  {
+    id: "required-taiheng",
+    chinese: "\u592a\u8861\u8d44\u672c",
+    english: "Tenet Capital (Supreme Equilibrium)",
+    style: "\u7ecf\u7eac / \u5e73\u8861",
+    note: "\u592a\u8861\u53d6\u5e7f\u5927\u5747\u8861\u4e4b\u610f\uff0c\u9002\u5408\u7a33\u5065\u914d\u7f6e\u6c14\u8d28"
+  },
+  {
+    id: "required-tianshu",
+    chinese: "\u5929\u67a2\u8d44\u672c",
+    english: "Talix Capital (The Celestial Pivot)",
+    style: "\u661f\u8fb0 / \u67a2\u7ebd",
+    note: "\u5929\u67a2\u4e3a\u5317\u6597\u4e4b\u9996\uff0c\u6709\u4e2d\u5fc3\u3001\u67a2\u7ebd\u548c\u65b9\u5411\u611f"
+  },
+  {
+    id: "required-dinghai",
+    chinese: "\u5b9a\u6d77\u8d44\u672c",
+    english: "Dynax Capital (The Sea-Steadying Needle)",
+    style: "\u6210\u8bed / \u7a33\u5b9a",
+    note: "\u53d6\u5b9a\u6d77\u795e\u9488\u4e4b\u610f\uff0c\u5f3a\u8c03\u7a33\u5b9a\u3001\u538b\u8231\u548c\u7a7f\u8d8a\u5468\u671f"
+  }
+].map((item) => ({
+  votes: 0,
+  createdAt: "2026-05-25T00:00:00.000Z",
+  ...item
+}));
+
 function sendJson(res, status, payload) {
   res.writeHead(status, jsonHeaders);
   res.end(JSON.stringify(payload));
@@ -78,10 +109,14 @@ async function loadNames() {
   try {
     const raw = await readFile(namesDataPath, "utf8");
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed.names) ? parsed.names : seedNames;
+    const loadedNames = Array.isArray(parsed.names) ? parsed.names : seedNames;
+    const migratedNames = migrateNames(loadedNames);
+    if (JSON.stringify(loadedNames) !== JSON.stringify(migratedNames)) await saveNames(migratedNames);
+    return migratedNames;
   } catch {
-    await saveNames(seedNames);
-    return seedNames;
+    const migratedSeeds = migrateNames(seedNames);
+    await saveNames(migratedSeeds);
+    return migratedSeeds;
   }
 }
 
@@ -89,9 +124,36 @@ function cleanText(value, maxLength) {
   return String(value || "").trim().replace(/\s+/g, " ").slice(0, maxLength);
 }
 
+function baseChineseName(value) {
+  return String(value || "").replace(/\u8d44\u672c$/, "");
+}
+
+function withCapital(value) {
+  const text = cleanText(value, 12);
+  if (!text) return "";
+  return text.endsWith("\u8d44\u672c") ? text : `${text}\u8d44\u672c`;
+}
+
+function migrateNames(names) {
+  const nextNames = names.map((item) => {
+    const chinese = withCapital(item.chinese);
+    return {
+      ...item,
+      chinese,
+      conflict: item.conflict?.status === "unknown" ? undefined : item.conflict
+    };
+  });
+  requiredNames.forEach((required) => {
+    const requiredBase = baseChineseName(required.chinese).toLowerCase();
+    const exists = nextNames.some((item) => baseChineseName(item.chinese).toLowerCase() === requiredBase);
+    if (!exists) nextNames.push(required);
+  });
+  return nextNames;
+}
+
 function normalizeName(item) {
   const storedConflict = item.conflict?.status === "unknown" ? null : item.conflict;
-  const conflict = conflictDefaults[item.chinese] || storedConflict || unknownConflict;
+  const conflict = conflictDefaults[baseChineseName(item.chinese)] || storedConflict || unknownConflict;
   return { ...item, conflict };
 }
 
@@ -112,7 +174,7 @@ async function getNamePayload() {
 
 async function addName(req, res) {
   const body = await readRequestBody(req);
-  const chinese = cleanText(body.chinese, 12);
+  const chinese = withCapital(body.chinese);
   const english = cleanText(body.english, 42);
   const style = cleanText(body.style, 18) || "\u5176\u4ed6 / Other";
   const note = cleanText(body.note, 120);
