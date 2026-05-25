@@ -169,10 +169,10 @@ async function getNamePayload() {
 async function addName(req, res) {
   const body = await readRequestBody(req);
   const chinese = withCapital(body.chinese);
-  const english = cleanText(body.english, 42);
+  const english = cleanText(body.english, 42) || chinese;
   const style = cleanText(body.style, 18) || "\u5176\u4ed6 / Other";
   const note = cleanText(body.note, 120);
-  if (!chinese || !english) return sendJson(res, 400, { error: "Chinese and English names are required." });
+  if (!chinese) return sendJson(res, 400, { error: "Chinese name is required." });
   const names = await loadNames();
   const duplicate = names.some((item) =>
     item.chinese.toLowerCase() === chinese.toLowerCase()
