@@ -28,13 +28,14 @@ const conflictDefaults = {
   "\u5f18\u9053": { status: "clear", label: "No obvious match found", detail: "Public search did not show an obvious AMAC/private fund match." },
   "\u884c\u8fdc": { status: "clear", label: "No obvious match found", detail: "Public search did not show an obvious AMAC/private fund match." },
   "\u81f4\u8fdc": { status: "used", label: "Already used / likely conflict", detail: "Search found multiple private fund managers/products using \u81f4\u8fdc." },
-  "\u535a\u884d": { status: "used", label: "Already used / likely conflict", detail: "Search found \u5317\u4eac\u535a\u884d\u79c1\u52df\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8." }
+  "\u535a\u884d": { status: "used", label: "Already used / likely conflict", detail: "Search found \u5317\u4eac\u535a\u884d\u79c1\u52df\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8." },
+  "\u592a\u521d": { status: "used", label: "Already used / likely conflict", detail: "Search found \u5317\u4eac\u592a\u521d\u6295\u8d44\u7ba1\u7406\u6709\u9650\u516c\u53f8 and \u534e\u94a7\u592a\u521d\u79c1\u52df\u8bc1\u5238\u6295\u8d44\u57fa\u91d1." }
 };
 
 const unknownConflict = {
-  status: "unknown",
-  label: "Not checked",
-  detail: "This newly added name has not been checked against AMAC/public search yet."
+  status: "clear",
+  label: "No obvious match found",
+  detail: "No exact private fund match is currently in the conflict list. Please verify through AMAC search before final use."
 };
 
 const seedNames = [
@@ -89,7 +90,8 @@ function cleanText(value, maxLength) {
 }
 
 function normalizeName(item) {
-  const conflict = item.conflict || conflictDefaults[item.chinese] || unknownConflict;
+  const storedConflict = item.conflict?.status === "unknown" ? null : item.conflict;
+  const conflict = conflictDefaults[item.chinese] || storedConflict || unknownConflict;
   return { ...item, conflict };
 }
 

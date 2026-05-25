@@ -100,15 +100,19 @@ function renderRanking() {
 
 function conflictMarkup(item) {
   const conflict = item.conflict || { status: "unknown", label: "Not checked", detail: "Pending conflict check." };
-  const label = conflict.status === "used" ? "已有 / Already used" : conflict.status === "clear" ? "暂未发现 / No obvious match" : conflict.label;
+  const status = conflict.status === "unknown" ? "clear" : conflict.status;
+  const label = status === "used" ? "已有 / Already used" : "暂未发现 / No obvious match";
+  const detail = conflict.status === "unknown"
+    ? "No exact private fund match is currently in the conflict list. Please verify through AMAC search before final use."
+    : conflict.detail || "";
   return `
-    <div class="conflict-check conflict-${escapeHtml(conflict.status || "unknown")}">
+    <div class="conflict-check conflict-${escapeHtml(status || "clear")}">
       <div class="conflict-top">
         <strong>Conflict check</strong>
         <span>AMAC / public search</span>
       </div>
       <span class="conflict-badge">${escapeHtml(label)}</span>
-      <p>${escapeHtml(conflict.detail || "")}</p>
+      <p>${escapeHtml(detail)}</p>
       <a href="https://gs.amac.org.cn/amac-infodisc/res/pof/fund/index.html" target="_blank" rel="noreferrer">打开中基协查询 / Open AMAC search</a>
     </div>
   `;
