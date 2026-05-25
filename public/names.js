@@ -126,7 +126,8 @@ function renderNames() {
   }
   els.nameList.innerHTML = items.map((item) => {
     const voted = state.voted.has(item.id);
-    const deleteButton = state.adminToken ? `<button class="delete-button" type="button" data-delete="${escapeHtml(item.id)}">删除 / Delete</button>` : "";
+    const canDeleteConflict = state.adminToken && item.conflict?.status === "used";
+    const deleteButton = canDeleteConflict ? `<button class="delete-button" type="button" data-delete="${escapeHtml(item.id)}">删除冲突名 / Delete Used Name</button>` : "";
     return `
       <article class="name-card">
         <div class="name-main">
