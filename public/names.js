@@ -4,7 +4,6 @@ const state = {
   search: "",
   style: "all",
   sort: "votes",
-  adminToken: sessionStorage.getItem("fund-name-admin-token") || "",
   voted: new Set(JSON.parse(localStorage.getItem("fund-name-votes") || "[]"))
 };
 
@@ -20,13 +19,8 @@ const els = {
   nameList: document.querySelector("#nameList"),
   rankingList: document.querySelector("#rankingList"),
   nameForm: document.querySelector("#nameForm"),
-  formMessage: document.querySelector("#formMessage"),
-  adminTokenInput: document.querySelector("#adminTokenInput"),
-  adminUnlockButton: document.querySelector("#adminUnlockButton"),
-  adminMessage: document.querySelector("#adminMessage")
+  formMessage: document.querySelector("#formMessage")
 };
-
-if (els.adminTokenInput) els.adminTokenInput.value = state.adminToken;
 
 function saveVoted() {
   localStorage.setItem("fund-name-votes", JSON.stringify([...state.voted]));
@@ -126,8 +120,7 @@ function renderNames() {
   }
   els.nameList.innerHTML = items.map((item) => {
     const voted = state.voted.has(item.id);
-    const canDeleteConflict = state.adminToken && item.conflict?.status === "used";
-    const deleteButton = canDeleteConflict ? `<button class="delete-button" type="button" data-delete="${escapeHtml(item.id)}">删除冲突名 / Delete Used Name</button>` : "";
+    const deleteButton = item.conflict?.status === "used" ? `<button class="delete-button" type="button" data-delete="${escapeHtml(item.id)}">删除重复名 / Delete Duplicate</button>` : "";
     return `
       <article class="name-card">
         <div class="name-main">
@@ -226,11 +219,7 @@ async function deleteName(id) {
   if (!window.confirm(`Delete ${label}?`)) return;
   status("删除中 / Deleting...");
   const response = await fetch(`/api/names/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-    headers: {
-      "content-type": "application/json",
-      "x-admin-token": state.adminToken
-    }
+    method: "DELETE"
   });
   const payload = await response.json();
   if (!response.ok) throw new Error(payload.error || "Delete failed.");
@@ -261,19 +250,6 @@ async function addName(event) {
   els.formMessage.textContent = "已添加到候选名单 / Candidate added";
   renderAll();
   status("新名字已添加 / New name added");
-}
-
-function unlockAdmin() {
-  state.adminToken = els.adminTokenInput.value.trim();
-  if (!state.adminToken) {
-    sessionStorage.removeItem("fund-name-admin-token");
-    els.adminMessage.textContent = "请输入删除口令。Please enter the delete password.";
-    renderNames();
-    return;
-  }
-  sessionStorage.setItem("fund-name-admin-token", state.adminToken);
-  els.adminMessage.textContent = "管理员模式已启用。Admin mode enabled.";
-  renderNames();
 }
 
 els.refreshButton.addEventListener("click", () => loadNames().catch((error) => status(error.message, "error")));
@@ -308,9 +284,5 @@ els.nameList.addEventListener("click", (event) => {
   });
 });
 els.nameForm.addEventListener("submit", addName);
-els.adminUnlockButton.addEventListener("click", unlockAdmin);
-els.adminTokenInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") unlockAdmin();
-});
 
 loadNames().catch((error) => status(error.message, "error"));

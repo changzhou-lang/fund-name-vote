@@ -9,7 +9,6 @@ const dataDir = process.env.DATA_DIR || path.join(__dirname, "outputs", "name-vo
 const namesDataPath = path.join(dataDir, "names.json");
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || "0.0.0.0";
-const adminToken = process.env.ADMIN_TOKEN || "";
 
 const jsonHeaders = {
   "content-type": "application/json; charset=utf-8",
@@ -157,11 +156,6 @@ function normalizeName(item) {
   return { ...item, conflict };
 }
 
-function hasAdminAccess(req, body = {}) {
-  if (!adminToken) return false;
-  return req.headers["x-admin-token"] === adminToken || body.adminToken === adminToken;
-}
-
 async function getNamePayload() {
   const names = (await loadNames()).map(normalizeName);
   const styles = [...new Set(names.map((item) => item.style).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN"));
@@ -213,10 +207,11 @@ async function updateName(id, req, res) {
 }
 
 async function deleteName(id, req, res) {
-  const body = await readRequestBody(req);
-  if (!adminToken) return sendJson(res, 403, { error: "Admin token is not configured." });
-  if (!hasAdminAccess(req, body)) return sendJson(res, 403, { error: "Admin access required." });
   const names = await loadNames();
+  const item = names.find((entry) => entry.id === id);
+  if (!item) return sendJson(res, 404, { error: "Name not found." });
+  const conflict = normalizeName(item).conflict;
+  if (conflict.status !== "used") return sendJson(res, 403, { error: "Only already-used names can be deleted." });
   const nextNames = names.filter((entry) => entry.id !== id);
   if (nextNames.length === names.length) return sendJson(res, 404, { error: "Name not found." });
   await saveNames(nextNames);
