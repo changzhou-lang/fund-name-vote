@@ -4,6 +4,7 @@ const state = {
   search: "",
   style: "all",
   sort: "votes",
+  adminToken: sessionStorage.getItem("fund-name-admin-token") || "",
   voted: new Set(JSON.parse(localStorage.getItem("fund-name-votes") || "[]"))
 };
 
@@ -19,8 +20,13 @@ const els = {
   nameList: document.querySelector("#nameList"),
   rankingList: document.querySelector("#rankingList"),
   nameForm: document.querySelector("#nameForm"),
-  formMessage: document.querySelector("#formMessage")
+  formMessage: document.querySelector("#formMessage"),
+  adminTokenInput: document.querySelector("#adminTokenInput"),
+  adminUnlockButton: document.querySelector("#adminUnlockButton"),
+  adminMessage: document.querySelector("#adminMessage")
 };
+
+if (els.adminTokenInput) els.adminTokenInput.value = state.adminToken;
 
 function saveVoted() {
   localStorage.setItem("fund-name-votes", JSON.stringify([...state.voted]));
@@ -46,7 +52,7 @@ function filteredNames() {
   let items = [...state.names];
   if (state.style !== "all") items = items.filter((item) => item.style === state.style);
   if (q) {
-    items = items.filter((item) => [item.chinese, item.english, item.style, item.note]
+    items = items.filter((item) => [item.chinese, item.english, item.style, item.note, item.conflict?.label, item.conflict?.detail]
       .join(" ")
       .toLowerCase()
       .includes(q));
@@ -92,6 +98,22 @@ function renderRanking() {
   `).join("");
 }
 
+function conflictMarkup(item) {
+  const conflict = item.conflict || { status: "unknown", label: "Not checked", detail: "Pending conflict check." };
+  const label = conflict.status === "used" ? "已有 / Already used" : conflict.status === "clear" ? "暂未发现 / No obvious match" : conflict.label;
+  return `
+    <div class="conflict-check conflict-${escapeHtml(conflict.status || "unknown")}">
+      <div class="conflict-top">
+        <strong>Conflict check</strong>
+        <span>AMAC / public search</span>
+      </div>
+      <span class="conflict-badge">${escapeHtml(label)}</span>
+      <p>${escapeHtml(conflict.detail || "")}</p>
+      <a href="https://gs.amac.org.cn/amac-infodisc/res/pof/fund/index.html" target="_blank" rel="noreferrer">打开中基协查询 / Open AMAC search</a>
+    </div>
+  `;
+}
+
 function renderNames() {
   const items = filteredNames();
   if (!items.length) {
@@ -100,6 +122,7 @@ function renderNames() {
   }
   els.nameList.innerHTML = items.map((item) => {
     const voted = state.voted.has(item.id);
+    const deleteButton = state.adminToken ? `<button class="delete-button" type="button" data-delete="${escapeHtml(item.id)}">删除 / Delete</button>` : "";
     return `
       <article class="name-card">
         <div class="name-main">
@@ -111,11 +134,15 @@ function renderNames() {
             </label>
           </div>
           <div class="meta">
-            <span class="tag">${escapeHtml(item.style || "其他")}</span>
+            <span class="tag">${escapeHtml(item.style || "其他 / Other")}</span>
             <span>${new Date(item.createdAt).toLocaleDateString("zh-CN")}</span>
           </div>
           <p class="note">${escapeHtml(item.note || "暂无备注 / No note")}</p>
-          <button class="save-english-button" type="button" data-save-english="${escapeHtml(item.id)}">保存英文名 / Save English</button>
+          ${conflictMarkup(item)}
+          <div class="card-actions">
+            <button class="save-english-button" type="button" data-save-english="${escapeHtml(item.id)}">保存英文名 / Save English</button>
+            ${deleteButton}
+          </div>
         </div>
         <div class="vote-box">
           <div>
@@ -188,6 +215,26 @@ async function updateEnglish(id) {
   status("英文名已保存 / English name saved");
 }
 
+async function deleteName(id) {
+  const item = state.names.find((entry) => entry.id === id);
+  const label = item ? `${item.chinese} / ${item.english}` : id;
+  if (!window.confirm(`Delete ${label}?`)) return;
+  status("删除中 / Deleting...");
+  const response = await fetch(`/api/names/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: {
+      "content-type": "application/json",
+      "x-admin-token": state.adminToken
+    }
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "Delete failed.");
+  state.names = payload.names || [];
+  state.styles = payload.styles || [];
+  renderAll();
+  status("已删除 / Deleted");
+}
+
 async function addName(event) {
   event.preventDefault();
   els.formMessage.textContent = "提交中 / Submitting...";
@@ -211,6 +258,19 @@ async function addName(event) {
   status("新名字已添加 / New name added");
 }
 
+function unlockAdmin() {
+  state.adminToken = els.adminTokenInput.value.trim();
+  if (!state.adminToken) {
+    sessionStorage.removeItem("fund-name-admin-token");
+    els.adminMessage.textContent = "请输入删除口令。Please enter the delete password.";
+    renderNames();
+    return;
+  }
+  sessionStorage.setItem("fund-name-admin-token", state.adminToken);
+  els.adminMessage.textContent = "管理员模式已启用。Admin mode enabled.";
+  renderNames();
+}
+
 els.refreshButton.addEventListener("click", () => loadNames().catch((error) => status(error.message, "error")));
 els.searchInput.addEventListener("input", (event) => {
   state.search = event.target.value;
@@ -225,6 +285,11 @@ els.sortSelect.addEventListener("change", (event) => {
   renderNames();
 });
 els.nameList.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete]");
+  if (deleteButton) {
+    deleteName(deleteButton.dataset.delete).catch((error) => status(error.message, "error"));
+    return;
+  }
   const saveButton = event.target.closest("[data-save-english]");
   if (saveButton) {
     updateEnglish(saveButton.dataset.saveEnglish).catch((error) => status(error.message, "error"));
@@ -238,5 +303,9 @@ els.nameList.addEventListener("click", (event) => {
   });
 });
 els.nameForm.addEventListener("submit", addName);
+els.adminUnlockButton.addEventListener("click", unlockAdmin);
+els.adminTokenInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") unlockAdmin();
+});
 
 loadNames().catch((error) => status(error.message, "error"));

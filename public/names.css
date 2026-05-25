@@ -313,6 +313,94 @@ textarea:focus {
   font-size: 13px;
 }
 
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.delete-button {
+  min-height: 34px;
+  margin-top: 12px;
+  padding: 0 12px;
+  background: var(--red);
+  border-color: var(--red);
+  color: white;
+  font-size: 13px;
+}
+
+.conflict-check {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.conflict-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.conflict-top strong {
+  color: var(--ink);
+}
+
+.conflict-badge {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.conflict-check p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.conflict-check a {
+  width: fit-content;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.conflict-used {
+  border-color: rgba(185, 71, 71, 0.3);
+  background: #fff7f7;
+}
+
+.conflict-used .conflict-badge {
+  background: rgba(185, 71, 71, 0.14);
+  color: var(--red);
+}
+
+.conflict-clear {
+  border-color: rgba(31, 111, 91, 0.26);
+  background: #f5fbf8;
+}
+
+.conflict-clear .conflict-badge {
+  background: rgba(31, 111, 91, 0.14);
+  color: var(--green);
+}
+
+.conflict-unknown .conflict-badge {
+  background: var(--soft-2);
+  color: var(--gold);
+}
+
 .vote-box {
   display: flex;
   flex-direction: column;
