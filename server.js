@@ -130,6 +130,7 @@ function baseChineseName(value) {
 function withCapital(value) {
   const text = cleanText(value, 12);
   if (!text) return "";
+  if (!/[\u3400-\u9fff]/.test(text)) return text;
   return text.endsWith("\u8d44\u672c") ? text : `${text}\u8d44\u672c`;
 }
 
@@ -168,11 +169,13 @@ async function getNamePayload() {
 
 async function addName(req, res) {
   const body = await readRequestBody(req);
-  const chinese = withCapital(body.chinese);
-  const english = cleanText(body.english, 42) || chinese;
+  const rawChinese = cleanText(body.chinese, 12);
+  const rawEnglish = cleanText(body.english, 42);
+  const chinese = withCapital(rawChinese || rawEnglish);
+  const english = rawEnglish || chinese;
   const style = cleanText(body.style, 18) || "\u5176\u4ed6 / Other";
   const note = cleanText(body.note, 120);
-  if (!chinese) return sendJson(res, 400, { error: "Chinese name is required." });
+  if (!chinese && !english) return sendJson(res, 400, { error: "Chinese or English name is required." });
   const names = await loadNames();
   const duplicate = names.some((item) =>
     item.chinese.toLowerCase() === chinese.toLowerCase()
